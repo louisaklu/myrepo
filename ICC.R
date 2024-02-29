@@ -1,3 +1,6 @@
+## ICC compares reliability of rating of same subject to total variation across all subjects and ratings. 
+## High ICC = individual scores highly similar, variation can be attributed to inter-individual variation (consistency)
+
 #icc.data.mb <-
 #dog.during.vig <-  
 ind981.data <- Data %>%
@@ -8,43 +11,181 @@ ind981.data <- Data %>%
   pivot_wider(names_from = individual_ID, values_from = proportionvis) 
   group_by(activation_number) %>%
   summarise()
+  
+  ind1143.data <- Data %>%
+    filter(sound_stimuli == 'dog',
+           period == 'during',
+           activity == 'vigilant', 
+           individual_ID == '1143') %>%
+    pivot_wider(names_from = individual_ID, values_from = proportionvis) 
+  
+  indL31.data <- Data %>%
+    filter(sound_stimuli == 'dog',
+           period == 'during',
+           activity == 'vigilant', 
+           individual_ID == 'L31') %>%
+    pivot_wider(names_from = individual_ID, values_from = proportionvis)
 
-join.data<-left_join(ind1143.data, indL31.data, "activation_number") 
-join.data<-left_join(join.data, ind981.data, "activation_number") 
+join.data<-full_join(ind1143.data, indL31.data, "activation_number") 
+join.data<-full_join(join.data, ind981.data, "activation_number") 
 
 icc.data.mb<-join.data %>%
-  select(c('1143', '981', 'L31')) %>%
-  replace(is.na(.), 0)
+  select(c('1143', '981', 'L31'))
 
-t(icc.data.mb)
+transpose<- t(icc.data.mb) #swap rows and columns 
   
-print(psych::ICC(icc.data.mb))
+print(psych::ICC(transpose)) #2-way mixed effects, single measurement: ICC 0.196 
 
-print(irr::icc(icc.data.mb, model = "twoway", type = "agreement", unit = "average")) 
-
-#gives the variation between the 3 individuals in their response to the dog stimulus.
-#Low ICC -> low degree of rater/measurement agreement; individuals not similar to each other --> indicates consistency in individual response? 
+print(irr::icc(transpose, model = "twoway", type = "agreement", unit = "single")) 
 
 library(tidyverse)
 Data <- as.data.frame(Data)
 
-#silent.during.vig 
+#human.during.vig 
+ind981.data <- Data %>%
+  filter(sound_stimuli == 'human',
+         period == 'during',
+         activity == 'vigilant', 
+         individual_ID == '981') %>%
+  pivot_wider(names_from = individual_ID, values_from = proportionvis)
+
+ind1143.data <- Data %>%
+  filter(sound_stimuli == 'human',
+         period == 'during',
+         activity == 'vigilant', 
+         individual_ID == '1143') %>%
+  pivot_wider(names_from = individual_ID, values_from = proportionvis)
+
+indL31.data <- Data %>%
+  filter(sound_stimuli == 'human',
+         period == 'during',
+         activity == 'vigilant', 
+         individual_ID == 'L31') %>%
+  pivot_wider(names_from = individual_ID, values_from = proportionvis)
+
+join.data<-full_join(ind1143.data, indL31.data, "activation_number") 
+join.data<-full_join(join.data, ind981.data, "activation_number") 
+
+icc.data.mb<-join.data %>%
+  select(c('1143', '981', 'L31'))
+
+transpose<- t(icc.data.mb) 
+
+print(psych::ICC(transpose)) #2-way mixed effects, single measurement: ICC 0?  
+
+#novel.during.vig
+ind981.data <- Data %>%
+  filter(sound_stimuli == 'novel',
+         period == 'during',
+         activity == 'vigilant', 
+         individual_ID == '981') %>%
+  pivot_wider(names_from = individual_ID, values_from = proportionvis)
+
+ind1143.data <- Data %>%
+  filter(sound_stimuli == 'novel',
+         period == 'during',
+         activity == 'vigilant', 
+         individual_ID == '1143') %>%
+  pivot_wider(names_from = individual_ID, values_from = proportionvis)
+
+indL31.data <- Data %>%
+  filter(sound_stimuli == 'novel',
+         period == 'during',
+         activity == 'vigilant', 
+         individual_ID == 'L31') %>%
+  pivot_wider(names_from = individual_ID, values_from = proportionvis)
+
+join.data<-full_join(ind1143.data, indL31.data, "activation_number") 
+join.data<-full_join(join.data, ind981.data, "activation_number") 
+
+icc.data.mb<-join.data %>%
+  select(c('1143', '981', 'L31'))
+  
+  transpose<- t(icc.data.mb) 
+
+print(psych::ICC(transpose)) #ICC 0.22
+
+#roedeer.during.vig
+ind981.data <- Data %>%
+  filter(sound_stimuli == 'roedeer',
+         period == 'during',
+         activity == 'vigilant', 
+         individual_ID == '981') %>%
+  pivot_wider(names_from = individual_ID, values_from = proportionvis)
+
+ind1143.data <- Data %>%
+  filter(sound_stimuli == 'roedeer',
+         period == 'during',
+         activity == 'vigilant', 
+         individual_ID == '1143') %>%
+  pivot_wider(names_from = individual_ID, values_from = proportionvis)
+
+indL31.data <- Data %>%
+  filter(sound_stimuli == 'roedeer',
+         period == 'during',
+         activity == 'vigilant', 
+         individual_ID == 'L31') %>%
+  pivot_wider(names_from = individual_ID, values_from = proportionvis)
+
+join.data<-full_join(ind1143.data, indL31.data, "activation_number") 
+join.data<-full_join(join.data, ind981.data, "activation_number") 
+
+icc.data.mb<-join.data %>%
+  select(c('1143', '981', 'L31'))
+
+transpose<- t(icc.data.mb) 
+
+print(psych::ICC(transpose)) #ICC 0.079 
+
+
+#bird.during.vig
+ind981.data <- Data %>%
+  filter(sound_stimuli == 'bird',
+         period == 'during',
+         activity == 'vigilant', 
+         individual_ID == '981') %>%
+  pivot_wider(names_from = individual_ID, values_from = proportionvis)
+
+ind1143.data <- Data %>%
+  filter(sound_stimuli == 'bird',
+         period == 'during',
+         activity == 'vigilant', 
+         individual_ID == '1143') %>%
+  pivot_wider(names_from = individual_ID, values_from = proportionvis)
+
+indL31.data <- Data %>%
+  filter(sound_stimuli == 'bird',
+         period == 'during',
+         activity == 'vigilant', 
+         individual_ID == 'L31') %>%
+  pivot_wider(names_from = individual_ID, values_from = proportionvis)
+
+join.data<-full_join(ind1143.data, indL31.data, "activation_number") 
+join.data<-full_join(join.data, ind981.data, "activation_number") 
+
+icc.data.mb<-join.data %>%
+  select(c('1143', '981', 'L31'))
+
+transpose<- t(icc.data.mb) 
+
+print(psych::ICC(transpose)) #ICC 0.021 
+
+
+#silent.during.vig
 ind981.data <- Data %>%
   filter(sound_stimuli == 'silent',
          period == 'during',
          activity == 'vigilant', 
          individual_ID == '981') %>%
   pivot_wider(names_from = individual_ID, values_from = proportionvis)
-  group_by(activation_number) %>%
-  summarise()
 
 ind1143.data <- Data %>%
-    filter(sound_stimuli == 'silent',
-           period == 'during',
-           activity == 'vigilant', 
-           individual_ID == '1143') %>%
-    pivot_wider(names_from = individual_ID, values_from = proportionvis)
-  
+  filter(sound_stimuli == 'silent',
+         period == 'during',
+         activity == 'vigilant', 
+         individual_ID == '1143') %>%
+  pivot_wider(names_from = individual_ID, values_from = proportionvis)
+
 indL31.data <- Data %>%
   filter(sound_stimuli == 'silent',
          period == 'during',
@@ -52,30 +193,13 @@ indL31.data <- Data %>%
          individual_ID == 'L31') %>%
   pivot_wider(names_from = individual_ID, values_from = proportionvis)
 
-join.data<-left_join(ind1143.data, indL31.data, "activation_number") 
-join.data<-left_join(join.data, ind981.data, "activation_number") 
+join.data<-full_join(ind1143.data, indL31.data, "activation_number") 
+join.data<-full_join(join.data, ind981.data, "activation_number") 
 
-icc.data.silent<-join.data %>%
+icc.data.mb<-join.data %>%
   select(c('1143', '981', 'L31')) %>%
-  replace(is.na(.), 0)
+  
+  transpose<- t(icc.data.mb) 
 
-t(icc.data.silent)
+print(psych::ICC(transpose)) #ICC 0
 
-print(psych::ICC(icc.data.silent)) #ICC of 0? 
-print(irr::icc(icc.data.silent, model = "twoway", type = "agreement", unit = "single")) #negative ICC value? 
-
-#within-individual variation across stimuli --> expected to have high ICC 
-#981
-ind981.data <- Data %>%
-  filter(period == 'during',
-         activity == 'vigilant', 
-         individual_ID == '981') %>%
-  pivot_wider(names_from = sound_stimuli, values_from = proportionvis) 
-
-icc.data.981<-ind981.data %>%
-  select(c('human', 'roedeer', 'silent','dog','novel','bird')) %>%
-  replace(is.na(.), 0)
-
-t(icc.data.981)
-print(psych::ICC(icc.data.981)) #getting negative ICC values 
-print(irr::icc(icc.data.981, model = "twoway", type = "consistency", unit = "average")) 
