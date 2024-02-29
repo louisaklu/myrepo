@@ -1,0 +1,823 @@
+---
+title: "Roe deer behavioral analysis"
+author: "Louisa Kluessendorf"
+date: "2024-02-09"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning=FALSE,message=FALSE)
+
+#load data
+setwd("/Users/louisa/Desktop/Data from Onedrive/Edited sheets")
+Data <- read.csv("individuals_allactivities.csv",header=TRUE)
+Avgproportions<-read.csv("avgproportions_981.csv",header=TRUE)
+vigilant_all<-read.csv("vigilant_all.csv",header=TRUE)
+activities_981<-read.csv("981_activities.csv",header=TRUE)
+day_night<-read.csv("Day_Night_Avgs.csv",header=TRUE)
+friedman_test<-read.csv("friedman_test.csv",header=TRUE)
+friedman_test_individuals<-read.csv("friedman_test_individuals_during.csv",header=TRUE)
+population_vigilance<-read.csv("population_vigilance.csv",header=TRUE)
+
+#rm(loess_model) #remove object from environment
+
+#load packages
+library("rmarkdown")
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggpubr)
+library(rstatix)
+library(ggcorrplot)
+library(ggpubr)
+library(irr)
+library(stats)
+library(patchwork)
+library(psych)
+
+#check data
+summary(Data)
+str(Data)
+Data$sound_stimuli<-as.factor(Data$sound_stimuli) #convert character to factor
+Data$period<-as.factor(Data$period)
+Data$activity<-as.factor(Data$activity)
+Data$day1_night0<-as.factor(Data$day1_night0)
+Data$individual_ID<-as.factor(Data$individual_ID)
+
+population_vigilance$sound_stimuli<-as.factor(population_vigilance$sound_stimuli) #convert character to factor
+population_vigilance$period<-as.factor(population_vigilance$period)
+
+Avgproportions$sound_stimuli<-as.factor(Avgproportions$sound_stimuli)
+Avgproportions$activity<-as.factor(Avgproportions$activity)
+Avgproportions$period<-as.factor(Avgproportions$period)
+
+vigilant_all$sound_stimuli<-as.factor(vigilant_all$sound_stimuli)
+vigilant_all$period<-as.factor(vigilant_all$period)
+vigilant_all$individual_ID<-as.factor(vigilant_all$individual_ID)
+
+day_night$sound_stimuli<-as.factor(day_night$sound_stimuli) 
+day_night$period<-as.factor(day_night$period)
+day_night$activity<-as.factor(day_night$activity)
+day_night$day1_night0<-as.factor(day_night$day1_night0)
+day_night$individual_ID<-as.factor(day_night$individual_ID)
+
+friedman_test$sound<-as.factor(friedman_test$sound) 
+
+friedman_test_individuals$sound<-as.factor(friedman_test_individuals$sound) 
+
+#reorganize x axis
+Data$period <- factor(Data$period, levels = c("before", "during","after"))
+Data$sound_stimuli<-factor(Data$sound_stimuli,levels=c("dog","human","roedeer","novel","bird","silent"))
+
+```
+
+## Descriptive Results 
+### Proportion of time spent doing diff. activities
+#### Individual 981
+```{r descriptive results individual 981}
+
+#subset individual 981 
+Data_981 <- Data[Data$individual_ID=="981",]
+
+#mean time spent for all activities
+#grid separated by sound stimuli
+ggplot(Data_981, aes(x = period, y = proportionvis, fill = activity)) +
+  stat_summary(fun= "mean", geom = "bar", position = "stack") +
+  facet_wrap(~sound_stimuli, scales = "free_y", ncol = 3) +
+  labs(title="All activities individual 981", x = "Period", y = "Proportion of time in frame") +
+  theme_minimal()+
+  coord_cartesian(ylim = c(0, 1))
+
+#grid separated by period 
+ggplot(Data_981, aes(x = sound_stimuli, y = proportionvis, fill = activity)) +
+  stat_summary(fun = "mean", geom = "bar", position = "stack") +
+  facet_wrap(~period, scales = "free_y", ncol = 3) +
+  labs(title="All activities individual 981", x = "Sound Stimuli", y = "Proportion of time in frame") +
+  theme_minimal()+
+  coord_cartesian(ylim = c(0, 1)) +
+ theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+#### Individual L31
+```{r descriptive results individual L31}
+
+#subset individual L31
+Data_L31 <- Data[Data$individual_ID=="L31",]
+#remove activities with only 0 values
+Data_L31 <- Data_L31[Data_L31$activity != "cooperative_social_interaction", ]
+Data_L31 <- Data_L31[Data_L31$activity != "other", ]
+
+#mean time spent for all activities
+#grid separated by sound stimuli
+ggplot(Data_L31, aes(x = period, y = proportionvis, fill = activity)) +
+  stat_summary(fun= "mean", geom = "bar", position = "stack") +
+  facet_wrap(~sound_stimuli, scales = "free_y", ncol = 3) +
+  labs(title="All activities individual L31", x = "Period", y = "Proportion of time in frame") +
+  theme_minimal()+
+  coord_cartesian(ylim = c(0, 1))
+
+#grid separated by period 
+ggplot(Data_L31, aes(x = sound_stimuli, y = proportionvis, fill = activity)) +
+  stat_summary(fun = "mean", geom = "bar", position = "stack") +
+  facet_wrap(~period, scales = "free_y", ncol = 3) +
+  labs(title="All activities individual L31", x = "Sound Stimuli", y = "Proportion of time in frame") +
+  theme_minimal()+
+  coord_cartesian(ylim = c(0, 1)) +
+ theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values = c("vigilant"="#FF61CC","standing"="#C77CFF","moving_slow"="#00A9FF","moving_fast+panic"="#00BFC4","in_background"="#00BE67","feeding+ruminating"="#7CAE00","competitive_social_interaction"="#F8766D"))
+
+```
+
+#### Individual 1143
+```{r descriptive results individual 1143}
+
+#subset individual L31
+Data_1143 <- Data[Data$individual_ID=="1143",]
+#remove activities with only 0 values
+Data_1143 <- Data_1143[Data_1143$activity != "cooperative_social_interaction", ]
+Data_1143 <- Data_1143[Data_1143$activity != "other", ]
+Data_1143 <- Data_1143[Data_1143$activity != "moving_fast+panic", ]
+
+#mean time spent for all activities
+#grid separated by sound stimuli
+ggplot(Data_1143, aes(x = period, y = proportionvis, fill = activity)) +
+  stat_summary(fun= "mean", geom = "bar", position = "stack") +
+  facet_wrap(~sound_stimuli, scales = "free_y", ncol = 3) +
+  labs(title="All activities individual 1143", x = "Period", y = "Proportion of time in frame") +
+  theme_minimal()+
+  coord_cartesian(ylim = c(0, 1))
+
+#grid separated by period 
+ggplot(Data_1143, aes(x = sound_stimuli, y = proportionvis, fill = activity)) +
+  stat_summary(fun = "mean", geom = "bar", position = "stack") +
+  facet_wrap(~period, scales = "free_y", ncol = 3) +
+  labs(title="All activities individual 1143", x = "Sound Stimuli", y = "Proportion of time in frame") +
+  theme_minimal()+
+  coord_cartesian(ylim = c(0, 1)) +
+ theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+    scale_fill_manual(values = c("vigilant"="#FF61CC","standing"="#C77CFF","moving_slow"="#00A9FF","moving_fast+panic"="#00BFC4","in_background"="#00BE67","feeding+ruminating"="#7CAE00","competitive_social_interaction"="#F8766D"))
+
+```
+
+### Avg. proportion of time spent vigilant (981, L31, 1143)
+```{r combined descriptive results 981, L31, 1143}
+
+#reorganize x axis
+vigilant_all$period <- factor(vigilant_all$period, levels = c("before", "during","after"))
+vigilant_all$sound_stimuli<-factor(vigilant_all$sound_stimuli,levels=c("dog","human","roedeer","novel","bird","silent"))
+
+#grid of scatter plots for vigilance separated by sound; average of individuals added as line
+ggplot(vigilant_all, aes(x = period, y = avgproportion)) +
+  geom_point(position = position_dodge(width = 0.4), size = 3, aes(color = individual_ID,shape=individual_ID)) +
+  scale_shape_manual(values = c("981" = 16, "L31" = 17, "1143" = 18)) +
+  geom_errorbar(
+    aes(ymin = avgproportion - stdev, ymax = avgproportion + stdev, color=individual_ID),
+    position = position_dodge(width = 0.4),
+    width = 0.2
+  ) +
+  facet_wrap(~sound_stimuli, scales = "free_y", ncol = 3) +
+  labs(x = "Period", y = "Mean proportion of time spent vigilant") +
+  scale_color_manual(values = c("cornflowerblue", "orange", "yellowgreen")) + #assign custom colors
+  theme_minimal()+
+  geom_line(   #add avg. of combined individuals as line
+    data = vigilant_all %>%
+      group_by(period, sound_stimuli) %>%
+      summarize(combined_avg = mean(avgproportion)),
+    aes(x = period, y = combined_avg,group=1),
+    stat = "identity",
+    color = "gray",  
+    linetype =  "dashed"
+  )
+
+```
+
+#### All Stimuli, during period
+```{r, out.width="120%"}
+
+#subset data to only during period
+subsetduring_vigilant_all<-vigilant_all[vigilant_all$period=="during", ]
+
+#reorganize x axis
+subsetduring_vigilant_all$sound_stimuli <- factor(subsetduring_vigilant_all$sound_stimuli, levels = c("silent","bird", "dog","human","roedeer","novel"))
+
+#grid of scatter plots for vigilance separated by sound; average of individuals added as bars
+ggplot(subsetduring_vigilant_all, aes(x = sound_stimuli, y = avgproportion)) +
+  geom_bar(   #add avg. of combined individuals as line
+    data = subsetduring_vigilant_all %>%
+      group_by(sound_stimuli) %>%
+      summarize(combined_avg = mean(avgproportion)),
+    aes(x = sound_stimuli, y = combined_avg,group=1),
+    stat = "identity",
+    fill = "lightgrey"
+  )+
+  geom_point(position = position_dodge(width = 0.4), size = 3, aes(color = individual_ID,shape=individual_ID)) +
+  scale_shape_manual(values = c("981" = 16, "L31" = 17, "1143" = 18)) +
+  geom_errorbar(
+    aes(ymin = pmax(avgproportion - stdev,0), ymax = avgproportion + stdev, color=individual_ID), #ymin limit set to 0
+    position = position_dodge(width = 0.4),
+    width = 0.2
+  ) +
+  labs(title="Mean proportion vigilant (during exposure)",x = "Sound Stimuli", y = "Mean proportion of time spent vigilant") +
+  scale_color_manual(values = c("cornflowerblue", "orange", "yellowgreen")) + 
+  theme_minimal()
+  
+```
+
+### Rate of change in proportion of time spent vigilant (981, L31, 1143) between periods
+#### Individual 981
+```{r change in proportion of vigilance by period, 981}
+
+#calculate the rate of change between periods
+vigilant_all <- vigilant_all %>%
+  arrange(individual_ID, sound_stimuli, period) %>%
+  group_by(individual_ID, sound_stimuli) %>%
+  mutate(rate_of_change = c(NA, diff(avgproportion))) 
+
+#reorganize x axis
+vigilant_all$period <- factor(vigilant_all$period, levels = c("before", "during","after"))
+vigilant_all$sound_stimuli<-factor(vigilant_all$sound_stimuli,levels=c("dog","human","roedeer","novel","bird","silent"))
+
+#subset 981
+subset981_vigilant_all<-vigilant_all[vigilant_all$individual_ID=="981", ]
+
+#grid of barplots with rate of change between periods as delta values 
+ggplot(subset981_vigilant_all, aes(x = period, y = avgproportion, fill=period)) +
+  geom_bar(stat = "identity", position= "dodge") + 
+  facet_wrap(~sound_stimuli, scales = "free_y", ncol = 3) +
+  labs(x = "Period", y = "Mean proportion of time spent vigilant",fill="period") +
+  theme_minimal() +
+  geom_text(
+    aes(label = ifelse(period == "before", "", paste("Δ:", round(rate_of_change, 2))), y = avgproportion + 0.02),
+    position = position_dodge(width = 0.9),
+    size = 3
+  ) +
+  theme(legend.position = "none")
+
+```
+
+#### Individual L31
+```{r change in proportion of vigilance by period, L31}
+
+#subset L31
+subsetL31_vigilant_all<-vigilant_all[vigilant_all$individual_ID=="L31", ]
+
+#grid of barplots with rate of change between periods as delta values 
+ggplot(subsetL31_vigilant_all, aes(x = period, y = avgproportion, fill=period)) +
+  geom_bar(stat = "identity", position= "dodge") + 
+  facet_wrap(~sound_stimuli, scales = "free_y", ncol = 3) +
+  labs(x = "Period", y = "Mean proportion of time spent vigilant",fill="period") +
+  theme_minimal() +
+  geom_text(
+    aes(label = ifelse(period == "before", "", paste("Δ:", round(rate_of_change, 2))), y = avgproportion + 0.02),
+    position = position_dodge(width = 0.9),
+    size = 3
+  ) +
+  theme(legend.position = "none")
+
+```
+
+#### Individual 1143
+```{r change in proportion of vigilance by period, 1143}
+
+#subset L31
+subset1143_vigilant_all<-vigilant_all[vigilant_all$individual_ID=="1143", ]
+
+#grid of barplots with rate of change between periods as delta values 
+ggplot(subset1143_vigilant_all, aes(x = period, y = avgproportion, fill=period)) +
+  geom_bar(stat = "identity", position= "dodge") + 
+  facet_wrap(~sound_stimuli, scales = "free_y", ncol = 3) +
+  labs(x = "Period", y = "Mean proportion of time spent vigilant",fill="period") +
+  theme_minimal() +
+  geom_text(
+    aes(label = ifelse(period == "before", "", paste("Δ:", round(rate_of_change, 2))), y = avgproportion + 0.02),
+    position = position_dodge(width = 0.9),
+    size = 3
+  ) +
+  theme(legend.position = "none")
+
+```
+
+### Habitutation to stimuli (by rate of change)
+#### Population level 
+```{r habituation, population}
+
+#reorganize x axis
+population_vigilance$period <- factor(population_vigilance$period, levels = c("before", "during","after"))
+#population_vigilance$sound_stimuli<-factor(population_vigilance$sound_stimuli,levels=c("dog","human","roedeer","novel","bird","silent"))
+
+#calculate rate of change per unique individual event
+population_vigilance <- population_vigilance %>%
+  arrange(individual, activation_number, period, sound_stimuli) %>%
+  group_by(individual, activation_number, sound_stimuli) %>%
+  mutate(rate_of_change = c(NA, diff(proportion_vis))) 
+
+#subset data
+subsetduring_population_vigilance<-population_vigilance[population_vigilance$period=="during", ]
+subsetafter_population_vigilance<-population_vigilance[population_vigilance$period=="after", ]
+
+##grid of scatter plots by site (all stimuli, activation number, before-during) 
+ ggplot(subsetduring_population_vigilance, aes(x = activation_number, y = rate_of_change, group = site, color = site)) +
+  geom_point(size = 1) +
+  geom_line(aes(group = site), size = 1) +  # Add lines connecting the points
+  facet_wrap(~sound_stimuli, scales = "free_x", ncol = 3) +
+  geom_smooth(method="loess",se=TRUE, aes(color = NULL)) + # LOESS trend line (non-parametric) with confidence interval
+  labs(title = "Change in vigilance by activation number, population",
+       x = "Activation Number",
+       y = "Change in vigilance (during exposure)",
+       color = "Site") +
+  theme_minimal()
+ 
+ #distinguish between sites
+  ggplot(subsetduring_population_vigilance, aes(x = activation_number, y = rate_of_change, group = sound_stimuli, color = sound_stimuli)) +
+  geom_point(size = 1) +
+  geom_line(aes(group = sound_stimuli), size = 1) +  # Add lines connecting the points
+  facet_wrap(~site, scales = "free_x", ncol = 3) +
+  geom_smooth(method="loess",se=TRUE, aes(color = NULL)) + # LOESS trend line (non-parametric) with confidence interval
+  labs(title = "Change in vigilance by activation number, population",
+       x = "Activation Number",
+       y = "Change in vigilance (during exposure)",
+       color = "Sound") +
+  theme_minimal()
+  
+```
+
+```{r habituation, rate of change avgs, include=FALSE}
+ #Calculating avg. rate of change by activation number
+ ##DOG
+subsetduringdog_population_vigilance<-subsetduring_population_vigilance[subsetduring_population_vigilance$sound_stimuli=="dog", ]
+# Calculate the difference in rate_of_change for each pair of consecutive activation_number
+rate_of_change_diff <- diff(subsetduringdog_population_vigilance$rate_of_change)
+# Calculate the average change in rate_of_change per unit change in activation_number
+average_change <- mean(rate_of_change_diff, na.rm = TRUE)
+# Print the result
+cat("Average change in rate_of_change per unit change in activation_number:", average_change, "\n") # -00.005701071 
+ ##HUMAN
+ subsetduringhuman_population_vigilance<-subsetduring_population_vigilance[subsetduring_population_vigilance$sound_stimuli=="human", ]
+# Calculate the difference in rate_of_change for each pair of consecutive activation_number
+rate_of_change_diff <- diff(subsetduringhuman_population_vigilance$rate_of_change)
+# Calculate the average change in rate_of_change per unit change in activation_number
+average_change <- mean(rate_of_change_diff, na.rm = TRUE)
+# Print the result
+cat("Average change in rate_of_change per unit change in activation_number:", average_change, "\n") # 0.01193941 
+ ##BIRD
+ subsetduringbird_population_vigilance<-subsetduring_population_vigilance[subsetduring_population_vigilance$sound_stimuli=="bird", ]
+# Calculate the difference in rate_of_change for each pair of consecutive activation_number
+rate_of_change_diff <- diff(subsetduringbird_population_vigilance$rate_of_change)
+# Calculate the average change in rate_of_change per unit change in activation_number
+average_change <- mean(rate_of_change_diff, na.rm = TRUE)
+# Print the result
+cat("Average change in rate_of_change per unit change in activation_number:", average_change, "\n") # -0.001536149 
+ ##NOVEL
+ subsetduringnovel_population_vigilance<-subsetduring_population_vigilance[subsetduring_population_vigilance$sound_stimuli=="novel", ]
+# Calculate the difference in rate_of_change for each pair of consecutive activation_number
+rate_of_change_diff <- diff(subsetduringnovel_population_vigilance$rate_of_change)
+# Calculate the average change in rate_of_change per unit change in activation_number
+average_change <- mean(rate_of_change_diff, na.rm = TRUE)
+# Print the result
+cat("Average change in rate_of_change per unit change in activation_number:", average_change, "\n") #-0.007232207 
+
+ ##ROEDEER
+ subsetduringroedeer_population_vigilance<-subsetduring_population_vigilance[subsetduring_population_vigilance$sound_stimuli=="roedeer", ]
+# Calculate the difference in rate_of_change for each pair of consecutive activation_number
+rate_of_change_diff <- diff(subsetduringroedeer_population_vigilance$rate_of_change)
+# Calculate the average change in rate_of_change per unit change in activation_number
+average_change <- mean(rate_of_change_diff, na.rm = TRUE)
+# Print the result
+cat("Average change in rate_of_change per unit change in activation_number:", average_change, "\n") # -0.001919502 
+
+```
+
+#### Individual 981
+```{r habituation, 981}
+#reorganize x axis
+population_vigilance$period <- factor(population_vigilance$period, levels = c("before", "during","after"))
+population_vigilance$sound_stimuli<-factor(population_vigilance$sound_stimuli,levels=c("Dog","Human","Roedeer","Novel","Bird","Silent"))
+
+#add rate of change between periods to data frame 
+population_vigilance <- population_vigilance %>%
+  arrange(individual, activation_number, period, sound_stimuli) %>%
+  group_by(individual, activation_number, sound_stimuli) %>%
+  mutate(rate_of_change = c(NA, diff(proportion_vis)))  
+
+#subset Data to 981
+subsetduring_population_vigilance<-population_vigilance[population_vigilance$period=="during", ]
+subsetduring981_population_vigilance<-subsetduring_population_vigilance[subsetduring_population_vigilance$individual_ID=="981", ]
+
+#grid of scatter plots (all stimuli)
+ggplot(subsetduring981_population_vigilance, aes(x = activation_number, y = rate_of_change)) +
+  geom_point(size = 3) +
+  facet_wrap(~sound_stimuli, scales = "free_x", ncol = 3) +
+  geom_smooth(method="loess",se=TRUE, aes(color = NULL)) + # LOESS trend line with confidence interval
+  labs(title = "Change in vigilance by activation number, individual 981",
+       x = "Activation Number",
+       y = "Change in vigilance (during exposure)",
+       color = "Sound Stimuli") +
+  theme_minimal()
+
+```
+
+```{r habituation, rate of change individual 981, include=FALSE}
+#Calculating avg. rate of change by activation number
+ ##DOG
+#subsetvigilantduring981dog_population_vigilance<-subsetvigilantduring981_Data[subsetvigilantduring981_Data$sound_stimuli=="dog", ]
+# Calculate the difference in rate_of_change for each pair of consecutive activation_number
+#rate_of_change_diff <- diff(subsetvigilantduring981_Data$rate_of_change)
+# Calculate the average change in rate_of_change per unit change in activation_number
+#average_change <- mean(rate_of_change_diff, na.rm = TRUE)
+# Print the result
+#cat("Average change in rate_of_change per unit change in activation_number:", average_change, "\n") # -0.009411765 
+##HUMAN
+#subsetvigilantduring981human_Data<-subsetvigilantduring981_Data[subsetvigilantduring981_Data$sound_stimuli=="human", ]
+# Calculate the difference in rate_of_change for each pair of consecutive activation_number
+#rate_of_change_diff <- diff(subsetvigilantduring981human_Data$rate_of_change)
+# Calculate the average change in rate_of_change per unit change in activation_number
+#average_change <- mean(rate_of_change_diff, na.rm = TRUE)
+# Print the result
+#cat("Average change in rate_of_change per unit change in activation_number:", average_change, "\n") # -0.004545455 
+##BIRD
+#subsetvigilantduring981bird_Data<-subsetvigilantduring981_Data[subsetvigilantduring981_Data$sound_stimuli=="bird", ]
+# Calculate the difference in rate_of_change for each pair of consecutive activation_number
+#rate_of_change_diff <- diff(subsetvigilantduring981bird_Data$rate_of_change)
+# Calculate the average change in rate_of_change per unit change in activation_number
+#average_change <- mean(rate_of_change_diff, na.rm = TRUE)
+# Print the result
+#cat("Average change in rate_of_change per unit change in activation_number:", average_change, "\n") # 0.225
+##NOVEL
+#subsetvigilantduring981novel_Data<-subsetvigilantduring981_Data[subsetvigilantduring981_Data$sound_stimuli=="novel", ]
+# Calculate the difference in rate_of_change for each pair of consecutive activation_number
+#rate_of_change_diff <- diff(subsetvigilantduring981novel_Data$rate_of_change)
+# Calculate the average change in rate_of_change per unit change in activation_number
+#average_change <- mean(rate_of_change_diff, na.rm = TRUE)
+# Print the result
+#cat("Average change in rate_of_change per unit change in activation_number:", average_change, "\n") # 0.015 
+##ROEDEER
+#subsetvigilantduring981roedeer_Data<-subsetvigilantduring981_Data[subsetvigilantduring981_Data$sound_stimuli=="roedeer", ]
+# Calculate the difference in rate_of_change for each pair of consecutive activation_number
+#rate_of_change_diff <- diff(subsetvigilantduring981roedeer_Data$rate_of_change)
+# Calculate the average change in rate_of_change per unit change in activation_number
+#average_change <- mean(rate_of_change_diff, na.rm = TRUE)
+# Print the result
+#cat("Average change in rate_of_change per unit change in activation_number:", average_change, "\n") # -0.025
+
+```
+
+#### Individual L31
+```{r habituation, L31}
+#subset Data to L31
+subsetduringL31_population_vigilance<-subsetduring_population_vigilance[subsetduring_population_vigilance$individual_ID=="L31", ]
+
+#grid of scatter plots (all stimuli)
+ggplot(subsetduringL31_population_vigilance, aes(x = activation_number, y = rate_of_change)) +
+  geom_point(size = 3) +
+  facet_wrap(~sound_stimuli, scales = "free_x", ncol = 3) +
+  geom_smooth(method="loess",se=TRUE, aes(color = NULL)) + # LOESS trend line with confidence interval
+  labs(title = "Change in vigilance by activation number, individual L31",
+       x = "Activation Number",
+       y = "Change in vigilance (during exposure)",
+       color = "Sound Stimuli") +
+  theme_minimal()
+
+```
+
+#### Individual 1143
+```{r habituation, 1143}
+
+#subset Data to 1143
+subsetduring1143_population_vigilance<-subsetduring_population_vigilance[subsetduring_population_vigilance$individual_ID=="1143", ]
+
+#grid of scatter plots (all stimuli)
+ggplot(subsetduring1143_population_vigilance, aes(x = activation_number, y = rate_of_change)) +
+  geom_point(size = 3) +
+  facet_wrap(~sound_stimuli, scales = "free_x", ncol = 3) +
+  geom_smooth(method="loess",se=TRUE, aes(color = NULL)) + # LOESS trend line with confidence interval
+  labs(title = "Change in vigilance by activation number, individual 1143",
+       x = "Activation Number",
+       y = "Change in vigilance (during exposure)",
+       color = "Sound Stimuli") +
+  theme_minimal()
+
+```
+
+
+## Statistical Analysis
+### Assessing average behavioral plasticity of the 3 individuals 
+```{r stats combined individuals, include=FALSE}
+
+#Plasticity between situations: repeated measures ANOVA to investigate effect of treatment (sound stimuli) and period on vigilance duration 
+#change data frame structure into long format 
+friedman_test <- friedman_test %>%
+  gather(key = "period", value = "proportionvis", before, during, after) %>%
+  convert_as_factor(sound, period)
+head(friedman_test,21) 
+
+#reorganize x axis
+friedman_test$period <- factor(friedman_test$period, levels = c("before", "during","after"))
+
+#check distribution
+hist(friedman_test$proportionvis, breaks = 20, col = "lightblue", main = "Histogram")
+shapiro.test(friedman_test$proportionvis) #p-value <0.05 --> no normal distribution
+
+#summary statistics - difference between periods 
+friedman_test %>%
+  group_by(period) %>%
+  get_summary_stats(proportionvis, type = "common")
+
+#boxplot - difference between periods
+ggboxplot(friedman_test,x="period",y="proportionvis",add="jitter")
+
+```
+
+#### Difference in vigilance between periods
+```{r stats combined individuals continued}
+
+#Friedman's test (non-parametric alternative to one-way repeated measures ANOVA used to determine whether there are statistically significant differences between the distributions of three or more paired groups 
+res.fried <- friedman_test %>% friedman_test(proportionvis~period|sound)
+res.fried #p-value of 0.049 = avg. vigilance duration significantly different between periods 
+
+#Kendall's W can be used as a measure of the Friedman test effect size 
+friedman_test %>% friedman_effsize(proportionvis ~ period |sound) #effect size: 0.429, magnitude moderate 
+
+#Pairwise comparisons using paired Wilcoxon signed-rank test for identifying which groups are different 
+pwc <- friedman_test %>% wilcox_test(proportionvis ~ period, paired = TRUE, p.adjust.method = "bonferroni")
+pwc #pairwise comparison between before-during and during-after significantly significant (p-value < 0.05). Comparison between before-after statistically insignificant (p-value > 0.05) 
+
+# Visualization: box plots with p-values
+pwc <- pwc %>% add_xy_position(x = "period")
+
+ggboxplot(friedman_test, x = "period", y = "proportionvis", add = "point") + 
+  stat_pvalue_manual(pwc, hide.ns = TRUE) +
+  labs(
+    subtitle = get_test_label(res.fried,  detailed = TRUE),
+    caption = get_pwc_label(pwc)
+  )
+
+```
+
+```{r stats combined individuals continued 2, include=FALSE}
+#subset Data
+Data_vigilant<-Data[Data$activity=="vigilant",]
+subset_before <- Data_vigilant[Data_vigilant$period=="before",]
+subset_during <- Data_vigilant[Data_vigilant$period=="during",]
+subset_after <- Data_vigilant[Data_vigilant$period=="after",]
+
+levels(subset_after$sound_stimuli)
+Data_vigilant$sound_stimuli <- ordered(Data_vigilant$sound_stimuli,
+                         levels = c("silent", "dog", "human","novel","owl","woodpecker","roedeer")) #re-order levels
+
+#summary statistics
+group_by(subset_before, sound_stimuli) %>%
+  summarise(
+    count = n(),
+    mean = mean(proportionvis, na.rm = TRUE),
+    sd = sd(proportionvis, na.rm = TRUE),
+    median = median(proportionvis, na.rm = TRUE),
+    IQR = IQR(proportionvis, na.rm = TRUE)
+  )
+
+#plot vigilance by sound and color by sound
+#during
+ggboxplot(subset_during, x = "sound_stimuli", y = "proportionvis", 
+          color = "sound_stimuli", palette = c("#00AFBB", "#E7B800", "#FC4E07","#00b159","#6A6599FF","#F1B6DA","#BABABA","#F4A582"),
+          order = c("silent", "dog", "human","novel","owl","woodpecker","roedeer"),
+          ylab = "Porportion vigilant", xlab = "Sound Stimuli",title = "Boxplot showing vigilance duration in 'during' period")
+```
+
+#### Difference in vigilance between stimuli
+```{r stats combined individuals continued 3}
+
+#Friedman's test  
+res.fried <- friedman_test %>% friedman_test(proportionvis~sound|period)
+res.fried #p-value of 0.049 = avg. vigilance duration significantly different between periods 
+
+#Kendall's W can be used as a measure of the Friedman test effect size 
+friedman_test %>% friedman_effsize(proportionvis ~ period |sound) #effect size: 0.429, magnitude moderate 
+
+#Kruskal-Wallis test to see if there is any significant difference between avg. vigilance of all treatments
+kruskal.test(proportionvis ~ sound_stimuli, data = subset_before) #p-value = 0.8003
+kruskal.test(proportionvis ~ sound_stimuli, data = subset_during) #p-value = 2.187e-10
+kruskal.test(proportionvis ~ sound_stimuli, data = subset_after) #p-value = 0.9777 
+
+#Pairwise wilcox test to calculate pariwise comparisons between treatment levels with corrections for multiple testing 
+pairwise.wilcox.test(subset_during$proportionvis, subset_during$sound_stimuli,
+                 p.adjust.method = "BH") #significant difference btw. dog-silent, human-silent, novel-silent, novel-owl.
+
+```
+
+### Concordance in ranks of individual vigilance durations during exposure
+```{r stats individual consistency between treatments, include=FALSE}
+
+#Determining the degree of concordance in individual vigilance durations across treatments. Friedman test is used to assess whether there are any statistically significant differences between the distributions of three or more paired groups (used to detect differences in treatments across multiple test attempts).
+
+#change data frame structure into long format 
+friedman_test_individuals <- friedman_test_individuals %>%
+  gather(key = "individual", value = "proportionvis", X981, L31, X1143) %>%
+  convert_as_factor(sound, individual)
+head(friedman_test_individuals,21)
+
+#summary statistics
+friedman_test_individuals %>% group_by(individual) %>%  summarise(n = n(), mean = mean(proportionvis), 
+                                               sd = sd(proportionvis))
+
+```
+
+```{r stats individual consistency between treatments 2}
+#Visualize dataset
+ggplot(friedman_test_individuals, aes(x = individual, y = proportionvis)) + geom_boxplot(outlier.shape = NA) + 
+    geom_jitter(width = 0.2) + theme(legend.position="top")
+
+#Friedman test looking at difference in vigilance between sounds based on individuals
+res.fried_stimuli <- friedman_test_individuals %>% friedman_test(proportionvis ~ individual|sound)
+res.fried_stimuli #score of 0.1800923 indicates no sig. difference in vigilance between sounds based on individuals
+
+#Kendall's coefficient of concordance - vigilance durations across treatments
+friedman_test_individuals %>% friedman_effsize(proportionvis ~ individual | sound) #effect size small 
+
+#Friedman test looking at difference in vigilance between individuals based on sound
+res.fried_individuals <- friedman_test_individuals %>% friedman_test(proportionvis ~ sound|individual)
+res.fried_individuals #score of 0.066 indicates no significance in vigilance between individuals 
+
+#Kendall's coefficient for effect size - vigilance durations across individuals
+friedman_test_individuals %>% friedman_effsize(proportionvis ~ sound | individual) #effect size large
+
+# Perform pairwise Wilcoxon signed-rank tests as post hoc analysis
+posthoc_result <- pairwise.wilcox.test(friedman_test_individuals$proportionvis, 
+                                       friedman_test_individuals$individual,
+                                       p.adjust.method = "bonferroni")
+print(posthoc_result)
+
+```
+
+```{r change over time for individual 981, include=FALSE}
+
+#subset data
+subset_during_981<-subset_during[subset_during$individual_ID=="981",]
+
+#visualize data
+ggplot(subset_during_981, aes(x = trial_day, y = proportionvis, group = sound_stimuli, color = sound_stimuli)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Change in Vigilance Over Time",
+       x = "Trial Day",
+       y = "Vigilance Duration") +
+  theme_minimal()
+
+#check distribution
+#hist(subset_during$trial_day, breaks = 20, col = "lightblue", main = "Histogram") #histogram
+#shapiro.test(vigilance_individual_981$proportionvis) #p-value <0.05 --> no normal distribution
+
+#assess differences in vigilance durations for 981 between stimuli
+
+
+#for the model: random factor effect - trial day & sound stimuli 
+
+```
+
+
+
+### Habtituation - Population/individual comparison
+```{r habituation population level stats}
+#How consistent is population-level response?
+##DOG
+#subsetduringdog_population_vigilance<-na.omit(subsetduringdog_population_vigilance)
+#icc_result <- icc(subsetduringdog_population_vigilance$proportion_vis,model="twoway",type="agreement", unit= 'average')
+#print(icc_result)
+
+#ICC_result<-ICC(subsetduringdog_population_vigilance$proportion_vis)
+
+#How consistent is the intra-individual-level response to stimuli?
+##by sound --> ICC for looking at intra-individual variation in vigilance. High ICC --> high similarity across stimuli
+
+##within sound for one individual --> high ICC: high consistency
+###981, dog. One-way random effects model, interested in consistency
+#subsetvigilantduring_Data <- na.omit(subsetvigilantduring_Data) #remove missing values
+#icc_result <- icc(subsetvigilantduring_Data$proportionvis, model = "oneway", type = "consistency")
+#print(icc_result)
+
+# Print the ICC result
+#print(icc_result)
+
+
+##by individual --> high ICC: vigilance more similar within than among individuals
+
+##by activation number --> ICC would show similarity in vigilance scores by activation number. High ICC --> vigilance very similar across activation number, no variation with time) 
+
+
+```
+
+
+### Individuals 981, L31, 1143 - Day/Night comparison
+```{r day/night comparison all individuals, include=FALSE}
+#separated by day/night
+#reorganize x axis
+day_night$period <- factor(day_night$period, levels = c("before", "during","after"))
+
+#subset by stimuli
+day_night_dog <- day_night[day_night$sound_stimuli=="dog",]
+day_night_human <- day_night[day_night$sound_stimuli=="human",]
+
+#Dog
+ggplot(day_night_dog, aes(x = day1_night0, y = avgproportion)) +
+  geom_point(position = position_dodge(width = 0.4), size = 3, aes(color = individual_ID,shape=individual_ID)) +
+  scale_shape_manual(values = c("981" = 16, "L31" = 17,"1143" = 18)) +
+  geom_errorbar(
+    aes(ymin = avgproportion - stdev, ymax = avgproportion + stdev, color=individual_ID),
+    position = position_dodge(width = 0.4),
+    width = 0.2
+  ) +
+  facet_wrap(~period, scales = "free_y", ncol = 3) +
+  labs(title="Dog Stimulus", x = "Night (0) and Day (1)", y = "Proportion of time spent vigilant") +
+  theme(plot.title=element_text(hjust=0.5))+
+  scale_color_manual(values = c("cornflowerblue", "orange","yellowgreen"))  #assign custom colors
+
+#Human
+ggplot(day_night_human, aes(x = day1_night0, y = avgproportion)) +
+  geom_point(position = position_dodge(width = 0.4), size = 3, aes(color = individual_ID,shape=individual_ID)) +
+  scale_shape_manual(values = c("981" = 16, "L31" = 17,"1143"=18)) +
+  geom_errorbar(
+    aes(ymin = avgproportion - stdev, ymax = avgproportion + stdev, color=individual_ID),
+    position = position_dodge(width = 0.4),
+    width = 0.2
+  ) +
+  facet_wrap(~period, scales = "free_y", ncol = 3) +
+  labs(title="Human Stimulus", x = "Night (0) and Day (1)", y = "Proportion of time spent vigilant") +
+  theme(plot.title=element_text(hjust=0.5))+
+  scale_color_manual(values = c("cornflowerblue", "orange","yellowgreen"))
+
+```
+
+
+### Individual 981 - Correlation matrices
+```{r stats individual 981, include=FALSE}
+
+#individual 981 proportion of time spent vigilant
+
+#subset stimuli
+#dog <- vigilant_981[vigilant_981$sound_stimuli=="dog",]
+
+#Friedman's test (non-parametric test used to determine whether there are statistically significant differences among the group means in a repeated measures design)
+#friedman.test(avgproportion ~ period | sound_stimuli, data = vigilant_981)
+
+#testing significance in vigilance of 'before' period btw. stimuli
+#The Kruskal-Wallis test is a non-parametric test used to determine whether there are statistically significant differences between the medians of three or more independent groups
+#subset_before<-vigilance_proportionvis[vigilance_proportionvis$period=="before",]
+#kruskal.test(proportionvis ~ sound_stimuli,data=subset_before)
+
+#testing significance in vigilance of 'during' period btw. stimuli
+#subset_during <- vigilance_proportionvis[vigilance_proportionvis$period=="during",]
+#kruskal.test(proportionvis ~ sound_stimuli,data=subset_during) 
+
+#testing significance in vigilance of 'after' period btw. stimuli
+#subset_after <- vigilance_proportionvis[vigilance_proportionvis$period=="after",]
+#kruskal.test(proportionvis ~ sound_stimuli,data=subset_after) 
+
+```
+
+```{r correlations 981, include=FALSE}
+
+#check distribution of proportions 
+hist(activities_981$moving_fast.panic, breaks = 20, col = "lightblue", main = "Histogram") #histogram
+#shapiro.test(vigilance_individual_981$proportionvis) #p-value <0.05 --> no normal distribution
+
+#scatter plot for two continuous variables 
+ggplot(data = activities_981, aes(x = vigilant, y = feeding.ruminating)) +
+  geom_point(color = "blue", size = 3) +
+  labs(title = "Simple Scatter Plot", x = "Vigilant", y = "Feeding+Ruminating") +
+  theme_minimal()
+
+#data not normally distributed -> Spearman's rank correlation coefficient
+#spearman_result <- cor.test(activities_981$vigilance, activities_981$feeding.ruminating, method = "spearman")
+# Extract the correlation coefficient and p-value
+#spearman_cor <- spearman_result$estimate
+#p_value <- spearman_result$p.value
+# Print the result
+#cat("Spearman's Rank Correlation Coefficient:", spearman_cor, "\n")
+#cat("p-value:", p_value, "\n")
+
+#correlation matrix --> include only numeric columns in data frame 
+numeric_activities_981 <- activities_981[sapply(activities_981, is.numeric)]
+#omit NA values
+numeric_activities_981<- na.omit(numeric_activities_981)
+
+# Calculate Spearman's rank correlation matrix for all variables in the dataframe
+spearman_matrix_activities_981 <- cor(numeric_activities_981, method = "spearman")
+spearman_matrix_activities_981 <- round(cor(numeric_activities_981, method = "spearman"),1) #rounded up
+print(spearman_matrix_activities_981)
+
+#Compute matrix of correlation p-values
+p.matrix_activities_981 <- cor_pmat(numeric_activities_981,method="spearman")
+print(p.matrix_activities_981)
+
+```
+
+```{r correlations 981, 2, include=FALSE}
+
+#visualize correlation matrix with correlation coefficients & hierarchical clustering
+# method = "square" (default), argument lab = TRUE
+ggcorrplot(spearman_matrix_activities_981, lab=TRUE,hc.order=TRUE,outline.col="white",type="lower")
+
+#correlation matrix barring coefficients w/o significance 
+ggcorrplot(spearman_matrix_activities_981,hc.order=TRUE,p.mat=p.matrix_activities_981,outline.col="white",type="lower")
+
+```
+
