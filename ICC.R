@@ -79,4 +79,5 @@ icc.data.981<-ind981.data %>%
 t(icc.data.981)
 print(psych::ICC(icc.data.981)) #getting negative ICC values 
 print(irr::icc(icc.data.981, model = "twoway", type = "consistency", unit = "average")) 
+###
 
